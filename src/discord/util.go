@@ -3,13 +3,58 @@ package discord
 import (
 	"errors"
 	"fmt"
-	"schoolbot/internal/model"
 	"strings"
 
+	"database/sql"
+
 	"github.com/bwmarrin/discordgo"
+	"github.com/sahilm/fuzzy"
 )
 
-func makeChan(cls *model.Class, gc *GuildConnection) error {
+type module struct {
+	Id    int16
+	Title string
+	Abbr  string
+}
+
+type catalog []module
+
+func (c catalog) String(i int) string {
+	return fmt.Sprintf("%s %s", c[i].Abbr, c[i].Title)
+}
+
+func (c catalog) Len() int {
+	return len((c))
+}
+
+func getCatalog(db *sql.DB) (c catalog) {
+	rows, _ := db.Query("SELECT id, title, abbreviation FROM module")
+	c = make([]module, 0, len(rows))
+	for rows.next() {
+		m = module{}
+		rows.Scan(&m.ID, &m.Title, &m.Abbr)
+		append(c, m)
+	}
+	return c
+}
+
+func searchCatalog(cat []catalog, key string, max int) (matches []*module) {
+	results := fuzzy.FindFrom(key, cat)
+	if results == nil {
+		return matches
+	}
+
+	matches = make([]*model.Class, 0, max)
+	for i, r := range results {
+		if i >= max {
+			break
+		}
+		matches = append(matches, clsCatalog[r.Index])
+	}
+	return
+}
+
+func makeChan(cls *module, gc *GuildConnection) error {
 
 	roles, _ := gc.DS.GuildRoles(gc.guildID)
 	basePerm := roles[0].Permissions //roles[0] is the @everyone role
@@ -51,3 +96,8 @@ func makeChan(cls *model.Class, gc *GuildConnection) error {
 	return nil
 }
 
+func getModule(id int) (m module) {
+	DB.QueryRow("SELECT id, title, abbreviation FROM module WHERE id")
+	m = module{}
+	return m
+}

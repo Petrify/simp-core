@@ -1,51 +1,29 @@
 package discord
 
 import (
-	"flag"
-	"fmt"
-	"schoolbot/internal/model"
+	"database/sql"
 
-	"github.com/objectbox/objectbox-go/objectbox"
+	_ "github.com/go-sql-driver/mysql"
 )
 
-type catalog []*model.Class
-
-func (c catalog) String(i int) string {
-	return fmt.Sprintf("%s %s", c[i].Abbr, c[i].Name)
-}
-
-func (c catalog) Len() int {
-	return len((c))
-}
-
-// Variables used for command line parameters
-var (
-	Token string
-)
-
-// Variables for bot state
+// Bot Services
 var (
 	GCManager *GuildManager
 	TManager  *TerminalManager
+	DB        *sql.DB
 )
 
-func init() {
+func Run(token string) {
 
-	flag.StringVar(&Token, "t", "", "Bot Token")
-
-}
-
-func initObjectBox() *objectbox.ObjectBox {
-	objectBox, err := objectbox.NewBuilder().Model(model.ObjectBoxModel()).Build()
+	TManager, _ = NewTerminalManager(token)
+	GCManager, _ = NewGuildManager(token)
+	DB, err := sql.Open("mysql", "root:LooT67@/practice")
 	if err != nil {
-		panic(err)
+		panic(err.Error()) // Just for example purpose. You should use proper error handling instead of panic
 	}
-	return objectBox
+
 }
 
-func Run() {
-
-	TManager, _ = NewTerminalManager(Token)
-	GCManager, _ = NewGuildManager(Token, initObjectBox())
-
+func Close() {
+	DB.Close()
 }

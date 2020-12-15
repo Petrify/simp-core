@@ -3,23 +3,18 @@ package discord
 import (
 	"errors"
 	"fmt"
-	"schoolbot/internal/model"
-	"schoolbot/net/campusboard"
 	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/objectbox/objectbox-go/objectbox"
-	"github.com/sahilm/fuzzy"
 )
 
 type GuildManager struct {
-	ob     *objectbox.ObjectBox
 	DS     *discordgo.Session
 	active map[string]*GuildConnection
 }
 
-func NewGuildManager(token string, db *objectbox.ObjectBox) (gm *GuildManager, err error) {
+func NewGuildManager(token string) (gm *GuildManager, err error) {
 	// Create a new Discord session using the provided bot token.
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
@@ -57,7 +52,6 @@ func NewGuildManager(token string, db *objectbox.ObjectBox) (gm *GuildManager, e
 	}
 
 	gm = &GuildManager{
-		ob:     db,
 		DS:     dg,
 		active: make(map[string]*GuildConnection),
 	}
@@ -66,8 +60,6 @@ func NewGuildManager(token string, db *objectbox.ObjectBox) (gm *GuildManager, e
 }
 
 func (gm *GuildManager) newConnection(guild *discordgo.Guild) error {
-
-	box := model.BoxForClass(gm.ob)
 
 	cList, err := gm.DS.GuildChannels(guild.ID)
 	if err != nil {
@@ -87,18 +79,15 @@ func (gm *GuildManager) newConnection(guild *discordgo.Guild) error {
 	}
 
 	gc := &GuildConnection{
-		DS:         gm.DS,
-		cmdPrefix:  "!",
-		cmdChan:    cmdChan,
-		guildID:    guild.ID,
-		guild:      guild,
-		clsCatalog: nil,
-		box:        box,
-		commands:   nil,
+		DS:        gm.DS,
+		cmdPrefix: "!",
+		cmdChan:   cmdChan,
+		guildID:   guild.ID,
+		guild:     guild,
+		commands:  nil,
 	}
 
 	gc.commands = gCommands()
-	gc.readCatalog()
 
 	gm.active[guild.ID] = gc
 
@@ -110,14 +99,12 @@ func (gm *GuildManager) Close() {
 }
 
 type GuildConnection struct {
-	DS         *discordgo.Session
-	cmdPrefix  string
-	cmdChan    *discordgo.Channel
-	guildID    string
-	guild      *discordgo.Guild
-	clsCatalog catalog
-	box        *model.ClassBox
-	commands   *GuildInterpreter
+	DS        *discordgo.Session
+	cmdPrefix string
+	cmdChan   *discordgo.Channel
+	guildID   string
+	guild     *discordgo.Guild
+	commands  *GuildInterpreter
 }
 
 func (gc *GuildConnection) handle(m *discordgo.MessageCreate) {
@@ -141,15 +128,6 @@ func (gc *GuildConnection) handleCmdErr(e CommandError) {
 	case *ExecutionError:
 		gc.WriteCC(e.Error())
 	}
-}
-
-func (gc *GuildConnection) readCatalog() {
-
-	dbRead, err := gc.box.GetAll()
-	if err != nil {
-		panic(err)
-	}
-	gc.clsCatalog = dbRead
 }
 
 func (gc *GuildConnection) WriteCC(text string) {
@@ -264,8 +242,6 @@ func gCommands() (I *GuildInterpreter) {
 
 func adminCommands() (I *TerminalInterpreter) {
 	I = NewTerminalInterpreter()
-	I.AddCommand("db update", dbUpdate)
-	I.AddCommand("db clear", dbClear)
 	I.AddCommand("db add", dbAdd)
 	I.AddCommand("db del", dbDel)
 	I.AddCommand("db rename", dbRename)
@@ -297,22 +273,22 @@ func classTerminal(args []string, gc *GuildConnection, raw *discordgo.MessageCre
 		"Hallo! Ich kann dir helfen deine Vorlesungen zu konfigurieren! Ganz einfach diese Commands (ohne `!`) eingeben.\n`search <begriff>` um nach vorlesungen zu suchen\n`join <ID>` um der Volesung beizutreten\n`leave <ID>` um eine Vorlesung zu verlassen")
 }
 
-func dbUpdate(args []string, t *TerminalSession, raw *discordgo.MessageCreate) error {
-	n, err := campusboard.UpdateDB(t.Origin.box)
-	if err != nil {
-		t.Write("Database update failed")
-	}
-	t.Origin.readCatalog()
-	t.Write(fmt.Sprintf("Added %d new values to Database and Reloaded", n))
-	return nil
-}
+// func dbUpdate(args []string, t *TerminalSession, raw *discordgo.MessageCreate) error {
+// 	n, err := campusboard.UpdateDB(t.Origin.box)
+// 	if err != nil {
+// 		t.Write("Database update failed")
+// 	}
+// 	t.Origin.readCatalog()
+// 	t.Write(fmt.Sprintf("Added %d new values to Database and Reloaded", n))
+// 	return nil
+// }
 
-func dbClear(args []string, t *TerminalSession, raw *discordgo.MessageCreate) error {
-	t.Origin.box.RemoveAll()
-	t.Origin.readCatalog()
-	t.Write("Database emptied")
-	return nil
-}
+// func dbClear(args []string, t *TerminalSession, raw *discordgo.MessageCreate) error {
+// 	t.Origin.box.RemoveAll()
+// 	t.Origin.readCatalog()
+// 	t.Write("Database emptied")
+// 	return nil
+// }
 
 func dbDel(args []string, t *TerminalSession, raw *discordgo.MessageCreate) error {
 	id, err := strconv.ParseUint(args[0], 10, 64)
@@ -320,7 +296,9 @@ func dbDel(args []string, t *TerminalSession, raw *discordgo.MessageCreate) erro
 		return err
 	}
 
-	cls, _ := t.Origin.box.Get(id)
+	var module cls{}
+	
+
 	if cls == nil {
 		return t.Write("No Class with this ID.")
 	}
@@ -331,7 +309,6 @@ func dbDel(args []string, t *TerminalSession, raw *discordgo.MessageCreate) erro
 	}
 
 	t.Origin.box.Remove(cls)
-	t.Origin.readCatalog()
 
 	return nil
 }
@@ -462,22 +439,6 @@ func search(args []string, t *TerminalSession, raw *discordgo.MessageCreate) err
 	resp.WriteString("```")
 	t.Write(resp.String())
 	return nil
-}
-
-func searchCatalog(key string, clsCatalog catalog, max int) (matches []*model.Class) {
-	results := fuzzy.FindFrom(key, clsCatalog)
-	if results == nil {
-		return matches
-	}
-
-	matches = make([]*model.Class, 0, max)
-	for i, r := range results {
-		if i >= max {
-			break
-		}
-		matches = append(matches, clsCatalog[r.Index])
-	}
-	return
 }
 
 func join(args []string, t *TerminalSession, raw *discordgo.MessageCreate) error {

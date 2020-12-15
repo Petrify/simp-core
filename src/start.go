@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"schoolbot/discord"
 	"syscall"
+
+	"github.com/Petrify/simpbot/discord"
 )
 
 func main() {
 	flag.Parse()
-	discord.Run()
+	discord.Run(token)
 
 	// Wait here until CTRL-C or other term signal is received.
 	fmt.Println("Bot is now running.  Press CTRL-C to exit.")

@@ -1,13 +1,13 @@
 package campusboard
 
 import (
+	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"regexp"
-	"schoolbot/internal/model"
 	"strings"
 	"time"
 
@@ -27,39 +27,9 @@ type class struct {
 	Majors map[string]*major
 }
 
-func UpdateDB(box *model.ClassBox) (int, error) {
-	clsList, err := scanAllClasses()
-	if err != nil {
-		return 0, err
-	}
-	n := 0
-	query := box.Query(model.Class_.Name.Equals("", false))
-	query.Limit(1)
-	for _, cls := range clsList {
+func UpdateDB(db *sql.DB) (int, error) {
 
-		query.SetStringParams(model.Class_.Name, cls.Name)
-		results, err := query.Find()
-		if err != nil {
-			return 0, err
-		} else if len(results) == 0 { //i.e. the class does not yet exist in the DB
-
-			majList := make([]string, 0, 5)
-
-			//Parse map of Major objects into list of just Major names (keys)
-			for k := range cls.Majors {
-				majList = append(majList, k)
-			}
-
-			box.Put(&model.Class{
-				Name:   cls.Name,
-				Abbr:   cls.Abbr,
-				Majors: majList,
-			})
-			n++
-		}
-	}
-
-	return n, nil
+	return 0, nil
 }
 
 //Scans Campusboard for all classes of all majors and semesters

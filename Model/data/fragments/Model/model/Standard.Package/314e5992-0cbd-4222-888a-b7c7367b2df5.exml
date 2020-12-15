@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<!--GENERATED FILE, PLEASE DO NOT EDIT!!!--><EXT object="model" version="4">
+  <OBJECT>
+    <ID name="model" mc="Standard.Package" uid="314e5992-0cbd-4222-888a-b7c7367b2df5"/>
+    <PID name="Model" mc="Standard.Project" uid="b894d93d-137e-48ce-b62e-b13c5c7b33d9"/>
+    <ATTRIBUTES>
+      <ATT name="IsInstantiable">false</ATT>
+      <ATT name="IsAbstract">false</ATT>
+      <ATT name="IsLeaf">false</ATT>
+      <ATT name="IsRoot">false</ATT>
+      <ATT name="Visibility">Public</ATT>
+      <ATT name="Name"><![CDATA[model]]></ATT>
+      <ATT name="status">1970354901745664</ATT>
+    </ATTRIBUTES>
+    <DEPENDENCIES>
+      <COMP relation="OwnedElement">
+        <COMPID name="terminalcmd" mc="Standard.Package" uid="ba07e398-604c-46ce-929d-172ec53d0cb9"/>
+        <COMPID name="Context" mc="Standard.Interface" uid="393d190c-ba04-44fd-8496-65146ef2308b"/>
+        <COMPID name="commands" mc="Standard.Package" uid="672b9f1b-80f0-47d0-95a9-cec5c561c853"/>
+      </COMP>
+      <COMP relation="Product">
+        <COMPID name="model Class diagram" mc="Standard.ClassDiagram" uid="229af7aa-e3d8-4b65-a6f8-ae8d7943feb0"/>
+      </COMP>
+    </DEPENDENCIES>
+  </OBJECT>
+</EXT>
