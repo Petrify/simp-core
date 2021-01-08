@@ -5,12 +5,6 @@ import (
 	"strings"
 )
 
-//Error interface thrown by Commands when something goes wrong
-type CommandError interface {
-	error
-}
-
-//Implements Command Error
 type InvalidCommandError struct {
 	cmd   string
 	depth int
@@ -20,7 +14,6 @@ func (e InvalidCommandError) Error() string {
 	return fmt.Sprintf("Unknown Command: %s", e.cmd)
 }
 
-//Implements Command Error
 type InvalidArgsError struct {
 	cmd   string
 	depth int
@@ -36,7 +29,6 @@ func (e InvalidArgsError) Depth() int {
 	return e.depth
 }
 
-//Implements Command Error
 type ExecutionError struct {
 	cmd    string
 	depth  int

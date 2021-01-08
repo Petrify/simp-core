@@ -1,8 +1,8 @@
 package commands
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -14,27 +14,29 @@ type Interpreter struct {
 func NewInterpreter() *Interpreter {
 	return &Interpreter{
 		root: &commandNode{
-			"",
+			"", //root node has no key
 			make(map[string]*commandNode),
-			"",
-			"",
+			nil,
 		},
 	}
 }
 
-func (it *Interpreter) Run(cmd string) (err CommandError) {
+func (it *Interpreter) Run(ctx context.Context, cmd string) (err error) {
 
 	splitCmd := strings.Split(cmd, " ")
 	curr := it.root
+
 	var (
 		next    *commandNode
 		exisits bool
 		depth   int
 	)
+
 	for depth, key := range splitCmd {
 
 		if curr.children == nil {
-			err = errors.New(fmt.Sprintf("Command node has no children: %nCommand: %s%nDepth: %d", cmd, depth))
+			err = errors.New(("Command Interpreter error: Invalid command node"))
+			return
 		} else {
 			next, exisits = curr.children[key]
 		}
@@ -45,20 +47,18 @@ func (it *Interpreter) Run(cmd string) (err CommandError) {
 		}
 
 		curr = next
-	}
 
-	err = curr.verifyArgs(splitCmd[depth:])
-	if err != nil {
-		switch err.(type) {
-		case InvalidArgsError:
-			err = InvalidArgsError(err.Depth()
+		if curr.f != nil {
+			break
 		}
 	}
+
+	curr.f(ctx, splitCmd[depth:])
 
 	return
 }
 
-func (it *Interpreter) AddCommand(path, actExpr, argsExpr string) (err error) {
+func (it *Interpreter) AddCommand(path string, f func(ctx context.Context, args []string)) (err error) {
 	splitCmd := strings.Split(path, " ")
 	curr := it.root
 	var (
@@ -66,7 +66,7 @@ func (it *Interpreter) AddCommand(path, actExpr, argsExpr string) (err error) {
 		exisits bool
 	)
 	for _, key := range splitCmd {
-		if curr.actExpr != "" {
+		if curr.f != nil {
 			return errors.New("Can not create command as subcommand of an existing command")
 		}
 
@@ -82,8 +82,7 @@ func (it *Interpreter) AddCommand(path, actExpr, argsExpr string) (err error) {
 			next = &commandNode{
 				key,
 				nil,
-				"",
-				"",
+				nil,
 			}
 			curr.children[key] = next
 		}
@@ -91,8 +90,7 @@ func (it *Interpreter) AddCommand(path, actExpr, argsExpr string) (err error) {
 	}
 
 	//if we got this far, the command is valid and the last commandNode is stored in curr
-	curr.actExpr = actExpr
-	curr.argExpr = argExpr
+	curr.f = f
 	return
 }
 
@@ -101,6 +99,5 @@ func (it *Interpreter) AddCommand(path, actExpr, argsExpr string) (err error) {
 type commandNode struct {
 	key      string
 	children map[string]*commandNode
-	actExpr  string
-	argExpr  string
+	f        func(ctx context.Context, args []string)
 }
