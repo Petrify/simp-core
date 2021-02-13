@@ -6,8 +6,6 @@ var (
 	token string
 )
 
-func init() {
-
-	flag.StringVar(&Token, "t", "", "Bot Token")
-
+func initFlags() {
+	flag.StringVar(&token, "t", "", "Bot Token")
 }

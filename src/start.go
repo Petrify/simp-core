@@ -10,8 +10,13 @@ import (
 	"github.com/Petrify/simpbot/discord"
 )
 
+func init() {
+	initFlags()
+}
+
 func main() {
 	flag.Parse()
+	
 	discord.Run(token)
 
 	// Wait here until CTRL-C or other term signal is received.

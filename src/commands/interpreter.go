@@ -59,13 +59,17 @@ func (it *Interpreter) Run(ctx context.Context, cmd string) (err error) {
 }
 
 func (it *Interpreter) AddCommand(path string, f func(ctx context.Context, args []string)) (err error) {
+
 	splitCmd := strings.Split(path, " ")
 	curr := it.root
+
 	var (
 		next    *commandNode
 		exisits bool
 	)
+
 	for _, key := range splitCmd {
+
 		if curr.f != nil {
 			return errors.New("Can not create command as subcommand of an existing command")
 		}
