@@ -1,5 +1,4 @@
 package service
 
-type status struct {
-	
+type Status struct {
 }
