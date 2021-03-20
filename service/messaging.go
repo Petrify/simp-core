@@ -7,7 +7,7 @@ import (
 
 type message struct {
 	origin        Service
-	target 			Service
+	target        Service
 	data          map[string]interface{}
 	responseChan  chan *message
 	rTimeout      time.Duration
@@ -29,18 +29,23 @@ func (m *message) AddData(key string, val interface{}) {
 	m.data[key] = val
 }
 
-func (m *message) Send(target Service) (*message, error) {
+func (m *message) Send(target int64) (*message, error) {
 
 	m.SendNoWait(target)
 	m.rTimeoutTimer = time.NewTimer(m.rTimeout)
 	return m.response()
 }
 
-func (m *message) SendNoWait(target Service) {
-	m.target = target
+func (m *message) SendNoWait(target int64) {
+	ts, err := getService(target)
+	if err != nil {
+		m.err = err
+		close(m.responseChan)
+		return
+	}
+	m.target = ts
 	m.sentTime = time.Now()
-	target.giveMessage(m)
-
+	m.target.giveMessage(m)
 }
 
 func (m *message) Respond(src Service) (*message, error) {
@@ -56,7 +61,6 @@ func (m *message) RespondNoWait(src Service) {
 	resp.target = m.origin
 	resp.sentTime = time.Now()
 }
-
 
 func (m *message) ToString() string {
 	return "TODO: message.ToString()"

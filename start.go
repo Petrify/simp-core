@@ -11,11 +11,12 @@ import (
 
 	term "github.com/Petrify/go-terminal"
 	"github.com/Petrify/simpbot/config"
+	"github.com/Petrify/simpbot/service"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const cfgPath string = "server_config.yml"
+const cfgPath string = "./server_config.yml"
 
 func init() {
 	initFlags()
@@ -31,24 +32,42 @@ func main() {
 
 	flag.Parse()
 	config.LoadCfg(sConfig, cfgPath)
-	fmt.Println(sConfig.DBType)
-	t := term.SysTerminal
-	db, err := sql.Open(sConfig.DBType, sConfig.DBLogin)
 
-	t.Println("Hello, Simp")
-	t.Println(db.Stats())
+	t := term.SysTerminal
+
+	//Declare variables for DB connection loop
+	const maxRetries = 5
+	var (
+		db  *sql.DB
+		err error
+	)
+
+	//Connect to DB. Retry if necessary
+	for i := 0; i < maxRetries; i++ {
+		db, err = sql.Open("mysql", sConfig.DBLogin)
+		if err != nil {
+			t.Printf("Error opening Database connection \n%e \nRetrying... [%d/%d]", err, i+1, maxRetries)
+		}
+	}
+
+	if err != nil {
+		t.Println("Database connection failed. Stopping.")
+		panic(err)
+	}
+
+	service.StartSysService(db, t.Logger)
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Simp System Online. Press CTRL-C to exit.")
+	t.Println("Simp System Online. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	// Wait here until CTRL-C or other term signal is received.
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
-	t.Print(config.SaveCfg(sConfig, cfgPath))
+	config.SaveCfg(sConfig, cfgPath)
 }
 
 type cfg struct {
@@ -59,6 +78,7 @@ type cfg struct {
 func newCfg() (c *cfg) {
 	c = &cfg{}
 	c.DBType = "mysql"
+	c.DBLogin = "user:password@/dbname"
 
 	return
 }

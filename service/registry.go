@@ -5,71 +5,76 @@ import (
 	"fmt"
 )
 
-type ServiceCtor func(int, string, sql.DB) Service
+type serviceCtor func(id int64, name string, db *sql.DB) Service
+
+type sType struct {
+	name string
+	ex   bool
+	ctor serviceCtor
+}
 
 var (
-	cTors    map[string]ServiceCtor
+	types    map[string]sType
 	services map[int64]Service
 	idByName map[string]int64
 	sCount   int
 )
 
-func NewServiceType(typeName string, cTor ServiceCtor) {
-	
+func NewSType(name string, cTor serviceCtor, ex bool) error {
+	if _, ok := types[name]; ok {
+		typ := sType{name, ex, cTor}
+		types[name] = typ
+		return nil
+	} else {
+		return DuplicateTypeError(fmt.Errorf("Service Type with Name [%s] already exists", name))
+	}
 }
 
-func RegisterService(s Service) error {
+func newService(typ string, id int64, name string, db *sql.DB) error {
+	//create new service
+	sTyp, ok := types[typ]
+	if !ok {
+		return InvalidTypeError(fmt.Errorf("Service type [%s] does not exist", typ))
+	}
+	newServ := sTyp.ctor(id, name, db)
+
+	//register service
+	err := registerService(newServ)
+	if err != nil {
+		return fmt.Errorf("Could not register service [%d] %s \n%e", newServ.ID(), newServ.Name(), err)
+	}
+	return nil
+}
+
+func registerService(s Service) error {
 	if _, ok := services[s.ID()]; ok {
 		return DuplicateIDError(fmt.Errorf("service with ID [%d] already exists", s.ID()))
-	} else if _, ok := idByName[s.Name()]; ok {
-		return DuplicateNameError(fmt.Errorf("service with Name [%s] already exists", s.Name()))
 	} else {
+		err := s.Init()
+		if err != nil {
+			return InitializationError(err)
+		}
 		services[s.ID()] = s
-		idByName[s.Name()] = s.ID()
+		sCount++
 		return nil
 	}
 }
 
-func ServiceById(id int64) (Service, error) {
+func getService(id int64) (Service, error) {
 
 	if s, ok := services[id]; ok {
 		return s, nil
 	} else {
-		return nil, NoSuchServiceError(fmt.Errorf("no service with ID [%d]", id))
+		return nil, InvalidServiceError(fmt.Errorf("no service with ID [%d]", id))
 	}
-
-}
-
-func GetService(name string) (Service, error) {
-
-	if id, ok := idByName[name]; ok {
-		return ServiceById(id)
-	} else {
-		return nil, NoSuchServiceError(fmt.Errorf("no service with name [%s]", name))
-	}
-}
-
-func RenameService(curr string, name string) error {
-	s, e := GetService(curr)
-	if e != nil {
-		return e
-	} 
-
-	if _, ok := idByName[name]; ok {
-		return DuplicateNameError(fmt.Errorf("service with Name [%s] already exists", name))
-	}
-	
-	s.abstract().name = name
-	idByName[name] = s.ID()
-	delete(idByName, curr)
-
-	return nil
 }
 
 type DuplicateIDError error
 
-type DuplicateNameError error
-
 type DuplicateTypeError error
 
-type NoSuchServiceError error
+type InitializationError error
+
+type InvalidServiceError error
+
+type InvalidTypeError error

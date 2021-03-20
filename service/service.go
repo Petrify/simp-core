@@ -6,24 +6,41 @@ import (
 )
 
 type Service interface {
+	//Setup should perform first time setup routines for the Service such as creating database tables
+	Setup() error
+
+	//Init runs once at the Registration of the Service. acts like a secondary constructor
+	Init() error
 	Start() error
 	Stop()
 	Running() bool
-	Status() Status
+	//Status() Status
+
+	//implemented by AbstractService
 	giveMessage(*message)
 	abstract() *AbstractService
-
-	//getters & setters
 	Name() string
 	ID() int64
 }
 
 type AbstractService struct {
-	Logger log.Logger
-	name   string
-	db     *sql.DB //all services have a database connection
-	msgIn  chan *message
-	uid    int64
+	name  string
+	id    int64
+	DB    *sql.DB //all services have a database connection
+	msgIn chan *message
+	Log   *log.Logger
+}
+
+func NewAbstractService(name string, id int64, db *sql.DB, logger *log.Logger) *AbstractService {
+	s := AbstractService{
+		name,
+		id,
+		db,
+		make(chan *message),
+		logger,
+	}
+
+	return &s
 }
 
 func (s *AbstractService) giveMessage(m *message) {
@@ -31,7 +48,7 @@ func (s *AbstractService) giveMessage(m *message) {
 }
 
 func (s *AbstractService) ID() int64 {
-	return s.uid
+	return s.id
 }
 
 func (s *AbstractService) Name() string {
