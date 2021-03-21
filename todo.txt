@@ -1,0 +1,6 @@
+-Service statuses
+-Check for missed error cases
+-make commands more simple to use
+-DOCUMENTATION!!!!!
+-finish sys-service
+-map out database updating rules

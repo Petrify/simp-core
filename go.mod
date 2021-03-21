@@ -1,4 +1,4 @@
-module github.com/Petrify/simp-core
+module github.com/Petrify/simp
 
 go 1.15
 

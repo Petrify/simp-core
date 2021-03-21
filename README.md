@@ -1,2 +1,2 @@
-# simp-core
+# simp
  
