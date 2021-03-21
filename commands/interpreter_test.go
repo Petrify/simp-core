@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-type ctxKey string
+type CtxKey string
 
 func printSuccessFunc(T *testing.T) (f func(ctx context.Context, args []string)) {
 
@@ -20,7 +20,7 @@ func Test_Interpreter(T *testing.T) {
 
 	I := NewInterpreter()
 
-	ctx := context.WithValue(context.Background(), ctxKey("val"), "Context Value Test string")
+	ctx := context.WithValue(context.Background(), CtxKey("val"), "Context Value Test string")
 
 	T.Log("Adding command `test c1`")
 	if e := I.AddCommand("test c1", printSuccessFunc(T)); e != nil {
