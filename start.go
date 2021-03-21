@@ -10,8 +10,8 @@ import (
 	"database/sql"
 
 	term "github.com/Petrify/go-terminal"
-	"github.com/Petrify/simpbot/config"
-	"github.com/Petrify/simpbot/service"
+	"github.com/Petrify/simp-core/config"
+	"github.com/Petrify/simp-core/service"
 
 	_ "github.com/go-sql-driver/mysql"
 )

@@ -1,2 +1,2 @@
-# simpbot
+# simp-core
  
