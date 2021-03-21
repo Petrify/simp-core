@@ -16,13 +16,20 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const cfgPath string = "./server_config.yml"
+const cfgPathRelative string = "server_config.yml"
+
+var cfgPath string
 
 func init() {
 	initFlags()
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	cfgPath = cwd + "/" + cfgPathRelative
 }
 
-func main() {
+func Start() {
 
 	var (
 		sConfig *cfg = newCfg()
