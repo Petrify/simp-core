@@ -55,12 +55,11 @@ func (it *Interpreter) Run(ctx context.Context, cmd string, ext ...interface{}) 
 		}
 	}
 
-	curr.f(ctx, splitCmd[depth:], ext)
+	return curr.f(ctx, splitCmd[depth:], ext)
 
-	return
 }
 
-func (it *Interpreter) AddCommand(path string, f func(ctx context.Context, args []string, ext ...interface{})) (err error) {
+func (it *Interpreter) AddCommand(path string, f func(ctx context.Context, args []string, ext ...interface{}) error) (err error) {
 
 	splitCmd := strings.Split(path, " ")
 	curr := it.root
@@ -105,5 +104,5 @@ func (it *Interpreter) AddCommand(path string, f func(ctx context.Context, args 
 type commandNode struct {
 	key      string
 	children map[string]*commandNode
-	f        func(ctx context.Context, args []string, ext ...interface{})
+	f        func(ctx context.Context, args []string, ext ...interface{}) error
 }
