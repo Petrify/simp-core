@@ -25,6 +25,7 @@ type Service interface {
 type AbstractService struct {
 	name  string
 	id    int64
+	typ   string
 	DB    *sql.DB //all services have a database connection
 	msgIn chan *message
 	Log   *log.Logger
@@ -32,11 +33,12 @@ type AbstractService struct {
 
 func NewAbstractService(name string, id int64, db *sql.DB, logger *log.Logger) *AbstractService {
 	s := AbstractService{
-		name,
-		id,
-		db,
-		make(chan *message),
-		logger,
+		name:  name,
+		id:    id,
+		typ:   "",
+		DB:    db,
+		msgIn: make(chan *message),
+		Log:   logger,
 	}
 
 	return &s

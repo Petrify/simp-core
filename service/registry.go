@@ -39,6 +39,9 @@ func newService(typ string, id int64, name string, db *sql.DB) error {
 	}
 	newServ := sTyp.ctor(id, name, db, sysServ.Log)
 
+	//assign typ
+	newServ.abstract().typ = typ
+
 	//register service
 	err := registerService(newServ)
 	if err != nil {

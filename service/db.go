@@ -1,6 +1,17 @@
 package service
 
-import "database/sql"
+import (
+	"database/sql"
+	"fmt"
+)
+
+var ServerName string
+
+type modelService struct {
+	name string
+	id   int64
+	typ  string
+}
 
 //Finds all services marked with startup
 func qStartupServices(db *sql.DB) (lst []modelService, err error) {
@@ -27,8 +38,7 @@ func qStartupServices(db *sql.DB) (lst []modelService, err error) {
 	return
 }
 
-type modelService struct {
-	name string
-	id   int64
-	typ  string
+//returns string name of the schema associated with a service
+func Schema(s Service) string {
+	return fmt.Sprintf("%s_%s_$d", ServerName, s.abstract().typ, s.ID())
 }

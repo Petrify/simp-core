@@ -2,7 +2,6 @@ package simp
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,7 +17,14 @@ import (
 
 const cfgPathRelative string = "server_config.yml"
 
-var cfgPath string
+var (
+	cfgPath string
+	sConfig *cfg
+)
+
+func Name() string {
+	return sConfig.Name
+}
 
 func init() {
 	initFlags()
@@ -27,18 +33,16 @@ func init() {
 		panic(err)
 	}
 	cfgPath = cwd + "/" + cfgPathRelative
-}
 
-func Start() {
-
-	var (
-		sConfig *cfg = newCfg()
-	)
-
-	fmt.Println(sConfig.DBType)
+	sConfig = newCfg()
 
 	flag.Parse()
 	config.LoadCfg(sConfig, cfgPath)
+
+	service.ServerName = sConfig.Name
+}
+
+func Start() {
 
 	t := term.SysTerminal
 
@@ -80,10 +84,12 @@ func Start() {
 type cfg struct {
 	DBLogin string
 	DBType  string
+	Name    string
 }
 
 func newCfg() (c *cfg) {
 	c = &cfg{}
+	c.Name = "simp"
 	c.DBType = "mysql"
 	c.DBLogin = "user:password@/dbname"
 
