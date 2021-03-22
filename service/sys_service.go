@@ -8,7 +8,7 @@ import (
 func init() {
 }
 
-func StartSysService(db *sql.DB, logger *log.Logger) {
+func StartSysService(db *sql.DB, logger *log.Logger, sysName string) {
 
 	// Check if the System service already exists
 	//if it does, no op
@@ -16,24 +16,34 @@ func StartSysService(db *sql.DB, logger *log.Logger) {
 		return
 	}
 	s := SysService{
-		*NewAbstractService("System", 0, db, logger),
+		sysName:         sysName,
+		AbstractService: *NewAbstractService("System", 0, db, logger),
 	}
 	sysServ = &s
+	sysServ.typ = "system"
 	registerService(&s)
 
 }
 
 type SysService struct {
+	sysName string //name of system as given by server_config.yml
 	AbstractService
 }
 
 func (s *SysService) Setup() error {
-	return nil
+	return BuildSchema(s, "sys_schema.sql")
 }
 
 func (s *SysService) Init() error {
 
-	sList, err := qStartupServices(s.DB)
+	ok, err := dbExists(s)
+	if err != nil {
+		return err
+	} else if !ok {
+		BuildSchema(s, "sys_schema.sql")
+	}
+
+	sList, err := s.qStartupServices()
 	if err != nil {
 		s.Log.Println("Error Getting Startup Services")
 		return err //TODO:

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"database/sql"
@@ -32,17 +33,16 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	cfgPath = cwd + "/" + cfgPathRelative
+	cfgPath = filepath.Join(cwd, cfgPathRelative)
 
 	sConfig = newCfg()
 
-	flag.Parse()
 	config.LoadCfg(sConfig, cfgPath)
-
-	service.ServerName = sConfig.Name
 }
 
 func Start() {
+
+	flag.Parse()
 
 	t := term.SysTerminal
 
@@ -66,7 +66,7 @@ func Start() {
 		panic(err)
 	}
 
-	service.StartSysService(db, t.Logger)
+	service.StartSysService(db, t.Logger, sConfig.Name)
 
 	if err != nil {
 		panic(err)
