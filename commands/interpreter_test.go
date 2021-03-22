@@ -7,9 +7,9 @@ import (
 
 type CtxKey string
 
-func printSuccessFunc(T *testing.T) (f func(ctx context.Context, args []string)) {
+func printSuccessFunc(T *testing.T) (f func(ctx context.Context, args []string, ext ...interface{})) {
 
-	f = func(ctx context.Context, args []string) {
+	f = func(ctx context.Context, args []string, ext ...interface{}) {
 		T.Log("Command func test")
 	}
 

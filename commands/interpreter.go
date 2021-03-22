@@ -3,10 +3,11 @@ package commands
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 )
 
-//Command interpreter for guilds
+//Command interpreter
 type Interpreter struct {
 	root *commandNode
 }
@@ -21,7 +22,7 @@ func NewInterpreter() *Interpreter {
 	}
 }
 
-func (it *Interpreter) Run(ctx context.Context, cmd string) (err error) {
+func (it *Interpreter) Run(ctx context.Context, cmd string, ext ...interface{}) (err error) {
 
 	splitCmd := strings.Split(cmd, " ")
 	curr := it.root
@@ -30,19 +31,20 @@ func (it *Interpreter) Run(ctx context.Context, cmd string) (err error) {
 		next    *commandNode
 		exisits bool
 		depth   int
+		key     string
 	)
 
-	for depth, key := range splitCmd {
+	for depth, key = range splitCmd {
 
 		if curr.children == nil {
-			err = errors.New(("Command Interpreter error: Invalid command node"))
+			err = errors.New(("command Interpreter error: Invalid command node"))
 			return
 		} else {
 			next, exisits = curr.children[key]
 		}
 
 		if !exisits {
-			err = InvalidCommandError{cmd, depth}
+			err = InvalidCommandError(fmt.Errorf("invalid command %s", cmd))
 			return
 		}
 
@@ -53,12 +55,12 @@ func (it *Interpreter) Run(ctx context.Context, cmd string) (err error) {
 		}
 	}
 
-	curr.f(ctx, splitCmd[depth:])
+	curr.f(ctx, splitCmd[depth:], ext)
 
 	return
 }
 
-func (it *Interpreter) AddCommand(path string, f func(ctx context.Context, args []string)) (err error) {
+func (it *Interpreter) AddCommand(path string, f func(ctx context.Context, args []string, ext ...interface{})) (err error) {
 
 	splitCmd := strings.Split(path, " ")
 	curr := it.root
@@ -71,7 +73,7 @@ func (it *Interpreter) AddCommand(path string, f func(ctx context.Context, args 
 	for _, key := range splitCmd {
 
 		if curr.f != nil {
-			return errors.New("Can not create command as subcommand of an existing command")
+			return errors.New("can not create command as subcommand of an existing command")
 		}
 
 		if curr.children == nil {
@@ -103,5 +105,5 @@ func (it *Interpreter) AddCommand(path string, f func(ctx context.Context, args 
 type commandNode struct {
 	key      string
 	children map[string]*commandNode
-	f        func(ctx context.Context, args []string)
+	f        func(ctx context.Context, args []string, ext ...interface{})
 }
