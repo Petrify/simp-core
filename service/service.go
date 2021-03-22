@@ -13,7 +13,6 @@ type Service interface {
 	Init() error
 	Start() error
 	Stop()
-	Running() bool
 	//Status() Status
 
 	//implemented by AbstractService

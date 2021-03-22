@@ -5,12 +5,12 @@ import (
 	"fmt"
 )
 
-type serviceCtor func(id int64, name string, db *sql.DB) Service
+type ServiceCtor func(id int64, name string, db *sql.DB) Service
 
 type sType struct {
 	name string
 	ex   bool
-	ctor serviceCtor
+	ctor ServiceCtor
 }
 
 var (
@@ -20,7 +20,7 @@ var (
 	sCount   int
 )
 
-func NewSType(name string, cTor serviceCtor, ex bool) error {
+func NewSType(name string, cTor ServiceCtor, ex bool) error {
 	if _, ok := types[name]; ok {
 		typ := sType{name, ex, cTor}
 		types[name] = typ
