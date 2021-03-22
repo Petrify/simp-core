@@ -3,9 +3,10 @@ package service
 import (
 	"database/sql"
 	"fmt"
+	"log"
 )
 
-type ServiceCtor func(id int64, name string, db *sql.DB) Service
+type ServiceCtor func(id int64, name string, db *sql.DB, logger *log.Logger) Service
 
 type sType struct {
 	name string
@@ -16,11 +17,11 @@ type sType struct {
 var (
 	types    map[string]sType
 	services map[int64]Service
-	idByName map[string]int64
+	sysServ  *SysService
 	sCount   int
 )
 
-func NewSType(name string, cTor ServiceCtor, ex bool) error {
+func NewSType(name string, cTor func(id int64, name string, db *sql.DB, logger *log.Logger) Service, ex bool) error {
 	if _, ok := types[name]; ok {
 		typ := sType{name, ex, cTor}
 		types[name] = typ
@@ -36,12 +37,12 @@ func newService(typ string, id int64, name string, db *sql.DB) error {
 	if !ok {
 		return InvalidTypeError(fmt.Errorf("Service type [%s] does not exist", typ))
 	}
-	newServ := sTyp.ctor(id, name, db)
+	newServ := sTyp.ctor(id, name, db, sysServ.Log)
 
 	//register service
 	err := registerService(newServ)
 	if err != nil {
-		return fmt.Errorf("Could not register service [%d] %s \n%e", newServ.ID(), newServ.Name(), err)
+		return fmt.Errorf("could not register service [%d] %s \n%e", newServ.ID(), newServ.Name(), err)
 	}
 	return nil
 }

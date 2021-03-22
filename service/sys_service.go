@@ -18,6 +18,7 @@ func StartSysService(db *sql.DB, logger *log.Logger) {
 	s := SysService{
 		*NewAbstractService("System", 0, db, logger),
 	}
+	sysServ = &s
 	registerService(&s)
 
 }
