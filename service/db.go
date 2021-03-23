@@ -13,6 +13,7 @@ type modelService struct {
 	name string
 	id   int64
 	typ  string
+	v    int
 }
 
 //checks if a Database Already exists
@@ -24,9 +25,60 @@ func dbExists(s Service) (bool, error) {
 	return r.Next(), nil
 }
 
+func (s *SysService) dbNewService(id int64, name string, typ string, startup bool) error {
+	stmt, err := s.DB.Prepare(fmt.Sprintf(`INSERT INTO %s.service
+	(serviceid,
+	servicename,
+	servicetype,
+	startupservice)
+	VALUES
+	(<{serviceid: ?}>,
+	<{servicename: ?}>,
+	<{servicetype: ?}>,
+	<{startupservice: ?}>);`,
+		Schema(s)))
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	resp, err := stmt.Exec(id, name, typ, startup)
+	if err != nil {
+		sysServ.Log.Println("Error: ", resp)
+		return err
+	}
+
+	return nil
+}
+
+//Finds search by service ID
+func (s *SysService) qService(id int64) (*modelService, error) {
+	stmt, err := s.DB.Prepare(fmt.Sprintf("SELECT servicename, serviceid, servicetype, version FROM %s.service WHERE serviceid = ?", Schema(s)))
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(id)
+	if err != nil {
+		return nil, err
+	}
+
+	ms := modelService{}
+
+	if rows.Next() {
+		err = rows.Scan(&ms.name, &ms.id, &ms.typ, &ms.v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &ms, nil
+}
+
 //Finds all services marked with startup
 func (s *SysService) qStartupServices() (lst []modelService, err error) {
-	stmt, err := s.DB.Prepare(fmt.Sprintf("SELECT servicename, serviceid, servicetype FROM %s.service WHERE startupservice = 1", Schema(s)))
+	stmt, err := s.DB.Prepare(fmt.Sprintf("SELECT servicename, serviceid, servicetype, version FROM %s.service WHERE startupservice = 1", Schema(s)))
 	if err != nil {
 		return nil, err
 	}
@@ -39,12 +91,12 @@ func (s *SysService) qStartupServices() (lst []modelService, err error) {
 
 	//scan each element returned to a Service and append it to lst
 	for rows.Next() {
-		s := modelService{}
-		err = rows.Scan(&s.name, &s.id, &s.typ)
+		ms := modelService{}
+		err = rows.Scan(&ms.name, &ms.id, &ms.typ, &ms.v)
 		if err != nil {
 			return nil, err
 		}
-		lst = append(lst, s)
+		lst = append(lst, ms)
 	}
 
 	return

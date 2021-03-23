@@ -22,7 +22,7 @@ var (
 )
 
 func NewSType(name string, cTor func(id int64, name string, db *sql.DB, logger *log.Logger) Service, ex bool) error {
-	if _, ok := types[name]; ok {
+	if _, ok := types[name]; !ok {
 		typ := sType{name, ex, cTor}
 		types[name] = typ
 		return nil
@@ -42,10 +42,24 @@ func newService(typ string, id int64, name string, db *sql.DB) error {
 	//assign typ
 	newServ.abstract().typ = typ
 
-	//register service
-	err := registerService(newServ)
+	model, err := sysServ.qService(id)
 	if err != nil {
-		return fmt.Errorf("could not register service [%d] %s \n%e", newServ.ID(), newServ.Name(), err)
+		return err
+	} else if model != nil {
+		err = newServ.Setup()
+		if err != nil {
+			return err
+		}
+		err = sysServ.dbNewService(id, name, typ, false)
+		if err != nil {
+			return err
+		}
+	}
+
+	//register service
+	err = registerService(newServ)
+	if err != nil {
+		return fmt.Errorf("could not register service [%d] %s :%e", newServ.ID(), newServ.Name(), err)
 	}
 	return nil
 }
