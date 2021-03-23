@@ -22,7 +22,7 @@ func StartSysService(db *sql.DB, logger *log.Logger, sysName string) {
 	sysServ = &s
 	sysServ.typ = "system"
 	registerService(&s)
-
+	s.Start()
 }
 
 type SysService struct {
