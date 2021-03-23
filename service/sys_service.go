@@ -45,7 +45,7 @@ func (s *SysService) Init() error {
 
 	sList, err := s.qStartupServices()
 	if err != nil {
-		s.Log.Println("Error Getting Startup Services")
+		s.Log.Println("Error Getting Startup Services: ", err)
 		return err //TODO:
 	}
 
