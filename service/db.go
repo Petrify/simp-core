@@ -17,8 +17,16 @@ type modelService struct {
 }
 
 //checks if a Database Already exists
-func dbExists(s Service) (bool, error) {
+func SchemaExists(s Service) (bool, error) {
 	r, err := s.abstract().DB.Query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", Schema(s))
+	if err != nil {
+		return false, err
+	}
+	return r.Next(), nil
+}
+
+func SubschemaExists(s Service, subname string) (bool, error) {
+	r, err := s.abstract().DB.Query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", Subschema(s, subname))
 	if err != nil {
 		return false, err
 	}

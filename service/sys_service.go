@@ -36,7 +36,7 @@ func (s *SysService) Setup() error {
 
 func (s *SysService) Init() error {
 
-	ok, err := dbExists(s)
+	ok, err := SchemaExists(s)
 	if err != nil {
 		return err
 	} else if !ok {
