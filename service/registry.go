@@ -45,7 +45,7 @@ func newService(typ string, id int64, name string, db *sql.DB) error {
 	model, err := sysServ.qService(id)
 	if err != nil {
 		return err
-	} else if model != nil {
+	} else if model == nil {
 		err = newServ.Setup()
 		if err != nil {
 			return err
