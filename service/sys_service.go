@@ -52,7 +52,7 @@ func (s *SysService) Init() error {
 	for _, ms := range sList {
 
 		//create a new service
-		err := newService(ms.typ, ms.id, ms.name, s.DB)
+		err := NewService(ms.typ, ms.id, ms.name, s.DB)
 		if err != nil {
 			s.Log.Print(err)
 			continue

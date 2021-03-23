@@ -31,7 +31,7 @@ func NewSType(name string, cTor func(id int64, name string, db *sql.DB, logger *
 	}
 }
 
-func newService(typ string, id int64, name string, db *sql.DB) error {
+func NewService(typ string, id int64, name string, db *sql.DB) error {
 	//create new service
 	sTyp, ok := types[typ]
 	if !ok {
