@@ -142,7 +142,7 @@ func buildSchema(schema string, fPath string, db *sql.DB) error {
 		return err
 	}
 	script := string(fRead)
-	stmts := strings.Split(script, ";\n")
+	stmts := strings.Split(script, ";")
 
 	//begin new transaction
 	tx, err := db.Begin()
@@ -152,6 +152,11 @@ func buildSchema(schema string, fPath string, db *sql.DB) error {
 
 	//execute each statement, error and cancel transaction on error
 	for _, stmt := range stmts {
+		//skip accidental empty statements
+		if stmt == "" {
+			sysServ.Log.Println("Found empty SQL statement")
+			continue
+		}
 		stmt = fmt.Sprintf(stmt, schema)
 		_, err = tx.Exec(stmt)
 		if err != nil {
