@@ -55,7 +55,7 @@ func (it *Interpreter) Run(ctx context.Context, cmd string, ext ...interface{}) 
 		}
 	}
 
-	return curr.f(ctx, splitCmd[depth:], ext)
+	return curr.f(ctx, splitCmd[depth:], ext...)
 
 }
 
