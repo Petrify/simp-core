@@ -39,11 +39,7 @@ func (s *SysService) dbNewService(id int64, name string, typ string, startup boo
 	servicename,
 	servicetype,
 	startupservice)
-	VALUES
-	(<{serviceid: ?}>,
-	<{servicename: ?}>,
-	<{servicetype: ?}>,
-	<{startupservice: ?}>);`,
+	VALUES (?,?,?,?)`,
 		Schema(s)))
 	if err != nil {
 		return err
