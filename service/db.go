@@ -72,16 +72,17 @@ func (s *SysService) qService(id int64) (*modelService, error) {
 		return nil, err
 	}
 
-	ms := modelService{}
-
 	if rows.Next() {
+		ms := modelService{}
 		err = rows.Scan(&ms.name, &ms.id, &ms.typ, &ms.v)
 		if err != nil {
 			return nil, err
 		}
+		return &ms, nil
 	}
 
-	return &ms, nil
+	return nil, nil
+
 }
 
 //Finds all services marked with startup
