@@ -158,11 +158,14 @@ func buildSchema(schema string, fPath string, db *sql.DB) error {
 			continue
 		}
 		stmt = fmt.Sprintf(stmt, schema)
-		_, err = tx.Exec(stmt)
+		sysServ.Log.Print("Executing SQL: ", stmt)
+		_, err := tx.Exec(stmt)
 		if err != nil {
+			sysServ.Log.Println("Ran into an error: ", err)
 			tx.Rollback()
 			return err
 		}
+
 	}
 
 	return tx.Commit()
