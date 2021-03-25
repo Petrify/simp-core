@@ -13,12 +13,21 @@ import (
 	"github.com/otiai10/copy"
 )
 
+const sqlDelim = ";\n"
+
 var scriptDir = "sql_scripts"
 var baseDir string
+var absScriptDir string
 
 func init() {
 	exedir, _ := os.Executable()
 	baseDir = filepath.Dir(exedir)
+	absScriptDir = filepath.Join(baseDir, scriptDir)
+
+	os.Mkdir(absScriptDir, os.ModePerm) //ignore error, just create if it's not there
+
+	cloneSqlScripts()
+
 }
 
 type script struct {
@@ -29,19 +38,11 @@ type script struct {
 func Open(sname string) (*script, error) {
 
 	//add .sql if file given is not an sql file
-	if filepath.Ext(sname) != "sql" {
+	if filepath.Ext(sname) != ".sql" {
 		sname = sname + ".sql"
 	}
 
-	sDir := filepath.Join(baseDir, scriptDir)
-	sPath := filepath.Join(sDir, sname)
-
-	err := os.Mkdir(sDir, os.ModePerm)
-
-	//if this directory is new, copy base sql_scripts folder from this module's sql_scripts
-	if err == nil {
-		cloneSqlScripts(sDir)
-	}
+	sPath := filepath.Join(absScriptDir, sname)
 
 	//open file
 	f, err := os.OpenFile(sPath, os.O_RDONLY, os.ModePerm)
@@ -57,35 +58,44 @@ func Open(sname string) (*script, error) {
 
 			} else { //write todo Comment in file
 				f.WriteString("-- TODO")
-				f.Sync()
+				f.Close()
 
-				s := &script{
-					scanner: newScanner(";", f),
+				f, err = os.OpenFile(sPath, os.O_RDONLY, os.ModePerm)
+				if err != nil {
+					return nil, err
 				}
 
-				return s, nil
 			}
 
+		} else {
+			return nil, err
 		}
-
-		return nil, err
-
 	}
 
 	s := &script{
-		scanner: newScanner(";\n", f),
+		scanner: newScanner(sqlDelim, f),
 	}
 
 	return s, nil
 }
 
 //Clones Base sql_scripts folder from this module to target
-func cloneSqlScripts(target string) {
+func cloneSqlScripts() {
 	//get path to this source
 	_, b, _, _ := runtime.Caller(0)
 	modDir := filepath.Dir(filepath.Dir(b))
 	sDir := filepath.Join(modDir, scriptDir)
-	copy.Copy(sDir, target)
+
+	//set up copier to overwrite pre-existing files, and sync them immediately
+	opt := copy.Options{
+		OnDirExists: func(src, dest string) copy.DirExistsAction {
+			os.Remove(dest)
+			copy.Copy(src, dest)
+			return 0
+		},
+		Sync: true,
+	}
+	copy.Copy(sDir, absScriptDir, opt)
 
 }
 
