@@ -29,7 +29,7 @@ func SubschemaExists(s Service, subname string) (bool, error) {
 
 func (s *SysService) dbNewService(id int64, name string, typ string, startup bool) error {
 
-	err := simpsql.ExecScriptSchema(s.DB, "new_service", Schema(s), id, name, typ, startup)
+	err := simpsql.ExecScriptSchema(s.DB, "sys_new_service.sql", Schema(s), id, name, typ, startup)
 	if err != nil {
 		sysServ.Log.Println("error while saving new service to database", err)
 		return err
@@ -40,7 +40,7 @@ func (s *SysService) dbNewService(id int64, name string, typ string, startup boo
 
 //Finds search by service ID
 func (s *SysService) qService(id int64) (*modelService, error) {
-	rows, err := simpsql.QueryScriptSchema(s.DB, "get_service", Schema(s), id)
+	rows, err := simpsql.QueryScriptSchema(s.DB, "sys_get_service.sql", Schema(s), id)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (s *SysService) qService(id int64) (*modelService, error) {
 //Finds all services marked with startup
 func (s *SysService) qStartupServices() (lst []modelService, err error) {
 
-	rows, err := simpsql.QueryScriptSchema(s.DB, "get_startup_services", Schema(s))
+	rows, err := simpsql.QueryScriptSchema(s.DB, "sys_get_startup_services.sql", Schema(s))
 	if err != nil {
 		return nil, err
 	}
