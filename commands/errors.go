@@ -1,7 +1,7 @@
 package commands
 
-type InvalidCommandError error
+type InvalidCommandError struct{ error }
 
-type InvalidArgsError error
+type InvalidArgsError struct{ error }
 
-type ExecutionError error
+type ExecutionError struct{ error }
