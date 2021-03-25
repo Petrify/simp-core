@@ -36,10 +36,11 @@ func Open(sname string) (*script, error) {
 	sDir := filepath.Join(baseDir, scriptDir)
 	sPath := filepath.Join(sDir, sname)
 
-	_, err := os.Stat(sDir)
-	//if this directory does not exist, copy base sql_scripts folder from this module's sql_scripts
-	if err != nil {
-		cloneSqlScripts(baseDir)
+	err := os.Mkdir(sDir, os.ModePerm)
+
+	//if this directory is new, copy base sql_scripts folder from this module's sql_scripts
+	if err == nil {
+		cloneSqlScripts(sDir)
 	}
 
 	//open file
