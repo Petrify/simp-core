@@ -21,8 +21,16 @@ func StartSysService(db *sql.DB, logger *log.Logger, sysName string) {
 	}
 	sysServ = &s
 	sysServ.typ = "system"
-	registerService(&s)
-	s.Start()
+	err := registerService(&s)
+	if err != nil {
+		panic(err)
+	}
+
+	err = s.Start()
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 type SysService struct {

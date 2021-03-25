@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	simpsql "github.com/Petrify/simp-core/sql"
 )
 
 type modelService struct {
@@ -18,37 +20,18 @@ type modelService struct {
 
 //checks if a Database Already exists
 func SchemaExists(s Service) (bool, error) {
-	r, err := s.abstract().DB.Query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", Schema(s))
-	if err != nil {
-		return false, err
-	}
-	return r.Next(), nil
+	return simpsql.SchemaExists(sysServ.DB, Schema(s))
 }
 
 func SubschemaExists(s Service, subname string) (bool, error) {
-	r, err := s.abstract().DB.Query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", Subschema(s, subname))
-	if err != nil {
-		return false, err
-	}
-	return r.Next(), nil
+	return simpsql.SchemaExists(sysServ.DB, Subschema(s, subname))
 }
 
 func (s *SysService) dbNewService(id int64, name string, typ string, startup bool) error {
-	stmt, err := s.DB.Prepare(fmt.Sprintf(`INSERT INTO %s.service
-	(serviceid,
-	servicename,
-	servicetype,
-	startupservice)
-	VALUES (?,?,?,?)`,
-		Schema(s)))
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
 
-	resp, err := stmt.Exec(id, name, typ, startup)
+	err := simpsql.ExecScriptSchema(s.DB, "new_service", Schema(s), id, name, typ, startup)
 	if err != nil {
-		sysServ.Log.Println("Error: ", resp)
+		sysServ.Log.Println("error while saving new service to database", err)
 		return err
 	}
 
@@ -57,13 +40,7 @@ func (s *SysService) dbNewService(id int64, name string, typ string, startup boo
 
 //Finds search by service ID
 func (s *SysService) qService(id int64) (*modelService, error) {
-	stmt, err := s.DB.Prepare(fmt.Sprintf("SELECT servicename, serviceid, servicetype, version FROM %s.service WHERE serviceid = ?", Schema(s)))
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	rows, err := stmt.Query(id)
+	rows, err := simpsql.QueryScriptSchema(s.DB, "get_service", Schema(s), id)
 	if err != nil {
 		return nil, err
 	}
@@ -78,18 +55,12 @@ func (s *SysService) qService(id int64) (*modelService, error) {
 	}
 
 	return nil, nil
-
 }
 
 //Finds all services marked with startup
 func (s *SysService) qStartupServices() (lst []modelService, err error) {
-	stmt, err := s.DB.Prepare(fmt.Sprintf("SELECT servicename, serviceid, servicetype, version FROM %s.service WHERE startupservice = 1", Schema(s)))
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
 
-	rows, err := stmt.Query()
+	rows, err := simpsql.QueryScriptSchema(s.DB, "get_startup_services", Schema(s))
 	if err != nil {
 		return nil, err
 	}
