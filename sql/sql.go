@@ -190,7 +190,14 @@ func ExecScriptSchema(db *sql.DB, scriptName string, schema string, args ...inte
 		return err
 	}
 
-	return ExecScriptTx(tx, scriptName, args...)
+	err = ExecScriptTx(tx, scriptName, args...)
+	if err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+
+	return err
 }
 
 func QueryScriptSchema(db *sql.DB, scriptName string, schema string, args ...interface{}) (*sql.Rows, error) {
@@ -199,7 +206,14 @@ func QueryScriptSchema(db *sql.DB, scriptName string, schema string, args ...int
 		return nil, err
 	}
 
-	return QueryScriptTx(tx, scriptName, args...)
+	rows, err := QueryScriptTx(tx, scriptName, args...)
+	if err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+
+	return rows, err
 }
 
 func (s *script) ExecAll(db *sql.DB, args ...interface{}) error {
