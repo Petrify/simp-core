@@ -37,14 +37,14 @@ func (it *Interpreter) Run(ctx context.Context, cmd string, ext ...interface{}) 
 	for depth, key = range splitCmd {
 
 		if curr.children == nil {
-			err = errors.New(("command Interpreter error: Invalid command node"))
+			err = errors.New(("internal error: Invalid command node"))
 			return
 		} else {
 			next, exisits = curr.children[key]
 		}
 
 		if !exisits {
-			err = InvalidCommandError(fmt.Errorf("invalid command %s", cmd))
+			err = InvalidCommandError{fmt.Errorf("invalid command %s", cmd)}
 			return
 		}
 
