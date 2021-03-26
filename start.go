@@ -90,7 +90,6 @@ type cfg struct {
 func newCfg() (c *cfg) {
 	c = &cfg{}
 	c.Name = "simp"
-	c.DBType = "mysql"
 	c.DBLogin = "user:password@/dbname"
 
 	return
