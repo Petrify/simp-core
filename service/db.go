@@ -3,10 +3,6 @@ package service
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
-	"runtime"
-	"strings"
 
 	simpsql "github.com/Petrify/simp-core/sql"
 )
@@ -97,43 +93,8 @@ func BuildSubschema(s Service, name string, fPath string) error {
 	return buildSchema(schema, fPath, s.abstract().DB)
 }
 
-func buildSchema(schema string, fPath string, db *sql.DB) error {
+func buildSchema(schema string, scriptPath string, db *sql.DB) error {
 
-	//get path of package that called the public buildSchema functions
-	_, b, _, _ := runtime.Caller(2)
-	basepath := filepath.Dir(b)
+	return simpsql.ExecScriptSchema(db, scriptPath, schema)
 
-	//read script from file and split into statements
-	fRead, err := ioutil.ReadFile(filepath.Join(basepath, fPath))
-	if err != nil {
-		return err
-	}
-	script := string(fRead)
-	stmts := strings.Split(script, ";")
-
-	//begin new transaction
-	tx, err := db.Begin()
-	if err != nil {
-		return err
-	}
-
-	//execute each statement, error and cancel transaction on error
-	for _, stmt := range stmts {
-		//skip accidental empty statements
-		if stmt == "" {
-			sysServ.Log.Println("Found empty SQL statement")
-			continue
-		}
-		stmt = fmt.Sprintf(stmt, schema)
-		sysServ.Log.Print("Executing SQL: ", stmt)
-		_, err := tx.Exec(stmt)
-		if err != nil {
-			sysServ.Log.Println("Ran into an error: ", err)
-			tx.Rollback()
-			return err
-		}
-
-	}
-
-	return tx.Commit()
 }
