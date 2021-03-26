@@ -24,9 +24,11 @@ func init() {
 	baseDir = filepath.Dir(exedir)
 	absScriptDir = filepath.Join(baseDir, scriptDir)
 
-	os.Mkdir(absScriptDir, os.ModePerm) //ignore error, just create if it's not there
+	err := os.Mkdir(absScriptDir, os.ModePerm)
 
-	cloneSqlScripts()
+	if err == nil {
+		cloneSqlScripts()
+	}
 
 }
 
@@ -89,8 +91,6 @@ func cloneSqlScripts() {
 	//set up copier to overwrite pre-existing files, and sync them immediately
 	opt := copy.Options{
 		OnDirExists: func(src, dest string) copy.DirExistsAction {
-			os.Remove(dest)
-			copy.Copy(src, dest)
 			return 0
 		},
 		Sync: true,
