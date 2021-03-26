@@ -243,7 +243,7 @@ func ExecScript(db *sql.DB, name string, args ...interface{}) error {
 	}
 	defer s.Close()
 
-	return s.ExecAll(db)
+	return s.ExecAll(db, args...)
 }
 
 func ExecScriptTx(tx *sql.Tx, name string, args ...interface{}) error {
@@ -253,7 +253,7 @@ func ExecScriptTx(tx *sql.Tx, name string, args ...interface{}) error {
 	}
 	defer s.Close()
 
-	return s.ExecAllTx(tx)
+	return s.ExecAllTx(tx, args...)
 }
 
 //--- Schema opening
