@@ -27,7 +27,7 @@ func (s *SysService) dbNewService(id int64, name string, typ string, startup boo
 
 	err := simpsql.ExecScriptSchema(s.DB, "sys_new_service.sql", Schema(s), id, name, typ, startup)
 	if err != nil {
-		sysServ.Log.Println("error while saving new service to database", err)
+		sysServ.Log.Println("Error while saving new service to database: ", err)
 		return err
 	}
 
@@ -36,21 +36,18 @@ func (s *SysService) dbNewService(id int64, name string, typ string, startup boo
 
 //Finds search by service ID
 func (s *SysService) qService(id int64) (*modelService, error) {
-	rows, err := simpsql.QueryScriptSchema(s.DB, "sys_get_service.sql", Schema(s), id)
+	row := s.DB.QueryRow("SELECT servicename, serviceid, servicetype, version FROM `service` WHERE serviceid = ?", id)
+
+	ms := modelService{}
+	err := row.Scan(&ms.name, &ms.id, &ms.typ, &ms.v)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 
-	if rows.Next() {
-		ms := modelService{}
-		err = rows.Scan(&ms.name, &ms.id, &ms.typ, &ms.v)
-		if err != nil {
-			return nil, err
-		}
-		return &ms, nil
-	}
-
-	return nil, nil
+	return &ms, nil
 }
 
 //Finds all services marked with startup
