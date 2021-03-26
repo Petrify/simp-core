@@ -2,7 +2,6 @@ package simpsql
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -19,6 +18,8 @@ var scriptDir = "sql_scripts"
 var baseDir string
 var absScriptDir string
 
+var DB *sql.DB
+
 func init() {
 	exedir, _ := os.Executable()
 	baseDir = filepath.Dir(exedir)
@@ -29,6 +30,24 @@ func init() {
 	if err == nil {
 		cloneSqlScripts()
 	}
+
+}
+
+//Clones Base sql_scripts folder from this module to target
+func cloneSqlScripts() {
+	//get path to this source
+	_, b, _, _ := runtime.Caller(0)
+	modDir := filepath.Dir(filepath.Dir(b))
+	sDir := filepath.Join(modDir, scriptDir)
+
+	//set up copier to overwrite pre-existing files, and sync them immediately
+	opt := copy.Options{
+		OnDirExists: func(src, dest string) copy.DirExistsAction {
+			return 0
+		},
+		Sync: true,
+	}
+	copy.Copy(sDir, absScriptDir, opt)
 
 }
 
@@ -81,24 +100,6 @@ func Open(sname string) (*script, error) {
 	return s, nil
 }
 
-//Clones Base sql_scripts folder from this module to target
-func cloneSqlScripts() {
-	//get path to this source
-	_, b, _, _ := runtime.Caller(0)
-	modDir := filepath.Dir(filepath.Dir(b))
-	sDir := filepath.Join(modDir, scriptDir)
-
-	//set up copier to overwrite pre-existing files, and sync them immediately
-	opt := copy.Options{
-		OnDirExists: func(src, dest string) copy.DirExistsAction {
-			return 0
-		},
-		Sync: true,
-	}
-	copy.Copy(sDir, absScriptDir, opt)
-
-}
-
 func (s *script) Next() bool {
 	read, err := s.scanner.Scan()
 	s.last = strings.TrimSpace(read)
@@ -110,11 +111,7 @@ func (s *script) Next() bool {
 	return true
 }
 
-func (s *script) Prepare(tx *sql.Tx) (*sql.Stmt, error) {
-	return tx.Prepare(s.last)
-}
-
-func (s *script) Raw() string {
+func (s *script) Stmt() string {
 	return s.last
 }
 
@@ -122,103 +119,13 @@ func (s *script) Close() error {
 	return s.scanner.close()
 }
 
-func (s *script) Exec(db *sql.DB, args ...interface{}) (sql.Result, error) {
-	return db.Exec(s.Raw(), args...)
+func (s *script) Exec(tx *sql.Tx) (sql.Result, error) {
+	return tx.Exec(s.Stmt())
 }
 
-func (s *script) ExecTx(tx *sql.Tx, args ...interface{}) (sql.Result, error) {
-	return tx.Exec(s.Raw(), args...)
-}
-
-func (s *script) Query(db *sql.DB, args ...interface{}) (*sql.Rows, error) {
-	return db.Query(s.Raw(), args...)
-}
-
-func (s *script) QueryTx(tx *sql.Tx, args ...interface{}) (*sql.Rows, error) {
-	return tx.Query(s.Raw(), args...)
-}
-
-func (s *script) ExecSchema(db *sql.DB, schema string, args ...interface{}) (sql.Result, error) {
-	tx, err := WithSchema(db, schema)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.ExecTx(tx, args...)
-}
-
-func (s *script) QuerySchema(db *sql.DB, schema string, args ...interface{}) (*sql.Rows, error) {
-	tx, err := WithSchema(db, schema)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.QueryTx(tx, args...)
-}
-
-func QueryScript(db *sql.DB, scriptName string, args ...interface{}) (*sql.Rows, error) {
-	s, err := Open(scriptName)
-	if err != nil {
-		return nil, err
-	}
-	defer s.Close()
-
-	if !s.Next() {
-		return nil, errors.New("empty sql file")
-	}
-
-	return db.Query(s.Raw(), args...)
-}
-
-func QueryScriptTx(tx *sql.Tx, scriptName string, args ...interface{}) (*sql.Rows, error) {
-	s, err := Open(scriptName)
-	if err != nil {
-		return nil, err
-	}
-	defer s.Close()
-
-	if !s.Next() {
-		return nil, errors.New("empty sql file")
-	}
-
-	return tx.Query(s.Raw(), args...)
-}
-
-func ExecScriptSchema(db *sql.DB, scriptName string, schema string, args ...interface{}) error {
-	tx, err := WithSchema(db, schema)
-	if err != nil {
-		return err
-	}
-
-	err = ExecScriptTx(tx, scriptName, args...)
-	if err != nil {
-		tx.Rollback()
-	} else {
-		tx.Commit()
-	}
-
-	return err
-}
-
-func QueryScriptSchema(db *sql.DB, scriptName string, schema string, args ...interface{}) (*sql.Rows, error) {
-	tx, err := WithSchema(db, schema)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := QueryScriptTx(tx, scriptName, args...)
-	if err != nil {
-		tx.Rollback()
-	} else {
-		tx.Commit()
-	}
-
-	return rows, err
-}
-
-func (s *script) ExecAll(db *sql.DB, args ...interface{}) error {
+func (s *script) ExecAll(tx *sql.Tx) error {
 	for s.Next() {
-		_, err := s.Exec(db, args...)
+		_, err := s.Exec(tx)
 		if err != nil {
 			return err
 		}
@@ -226,56 +133,23 @@ func (s *script) ExecAll(db *sql.DB, args ...interface{}) error {
 	return nil
 }
 
-func (s *script) ExecAllTx(tx *sql.Tx, args ...interface{}) error {
-	for s.Next() {
-		_, err := s.ExecTx(tx, args...)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func ExecScript(db *sql.DB, name string, args ...interface{}) error {
+func ExecScript(tx *sql.Tx, name string) error {
 	s, err := Open(name)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
-	return s.ExecAll(db, args...)
-}
-
-func ExecScriptTx(tx *sql.Tx, name string, args ...interface{}) error {
-	s, err := Open(name)
-	if err != nil {
-		return err
-	}
-	defer s.Close()
-
-	return s.ExecAllTx(tx, args...)
+	return s.ExecAll(tx)
 }
 
 //--- Schema opening
 
-func WithSchema(db *sql.DB, schema string) (*sql.Tx, error) {
-
-	ok, err := SchemaExists(db, schema)
-	if err != nil {
-		return nil, err
-	}
+func UsingSchema(db *sql.DB, schema string) (*sql.Tx, error) {
 
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
-	}
-
-	if !ok {
-		//schema does not exist
-		_, err = tx.Exec(fmt.Sprintf("CREATE DATABASE `%[1]s` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;", schema))
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	_, err = tx.Exec(fmt.Sprintf("USE `%[1]s`", schema))
