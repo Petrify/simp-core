@@ -1,1 +1,0 @@
-SELECT servicename, serviceid, servicetype, version FROM `service` WHERE startupservice = 1
