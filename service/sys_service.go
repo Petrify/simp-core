@@ -1,14 +1,13 @@
 package service
 
 import (
-	"database/sql"
 	"log"
 )
 
 func init() {
 }
 
-func StartSysService(db *sql.DB, logger *log.Logger, sysName string) {
+func StartSysService(logger *log.Logger, sysName string) {
 
 	// Check if the System service already exists
 	//if it does, no op
@@ -17,7 +16,7 @@ func StartSysService(db *sql.DB, logger *log.Logger, sysName string) {
 	}
 	s := SysService{
 		sysName:         sysName,
-		AbstractService: *NewAbstractService("System", 0, db, logger),
+		AbstractService: *NewAbstractService("System", 0, logger),
 	}
 	sysServ = &s
 	sysServ.typ = "system"
@@ -44,6 +43,7 @@ func (s *SysService) Setup() error {
 
 func (s *SysService) Init() error {
 
+	// In case of first-time setup, build the system schema
 	ok, err := SchemaExists(s)
 	if err != nil {
 		return err
@@ -84,6 +84,8 @@ func (s *SysService) Start() error {
 			s.Log.Printf("Could not start service [%d] %s \n%e", serv.ID(), serv.Name(), err)
 			continue
 		}
+
+		s.Log.Printf("[%d] %s Started Successfully", serv.ID(), serv.Name())
 	}
 
 	return nil

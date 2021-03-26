@@ -1,7 +1,6 @@
 package service
 
 import (
-	"database/sql"
 	"log"
 )
 
@@ -26,17 +25,16 @@ type AbstractService struct {
 	name  string
 	id    int64
 	typ   string
-	DB    *sql.DB //all services have a database connection
 	msgIn chan *message
 	Log   *log.Logger
 }
 
-func NewAbstractService(name string, id int64, db *sql.DB, logger *log.Logger) *AbstractService {
+func NewAbstractService(name string, id int64, logger *log.Logger) *AbstractService {
 	s := AbstractService{
-		name:  name,
-		id:    id,
-		typ:   "",
-		DB:    db,
+		name: name,
+		id:   id,
+		typ:  "",
+
 		msgIn: make(chan *message),
 		Log:   logger,
 	}

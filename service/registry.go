@@ -1,12 +1,11 @@
 package service
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 )
 
-type ServiceCtor func(id int64, name string, db *sql.DB, logger *log.Logger) Service
+type ServiceCtor func(id int64, name string, logger *log.Logger) Service
 
 type sType struct {
 	name string
@@ -21,7 +20,7 @@ var (
 	sCount   int
 )
 
-func NewSType(name string, cTor func(id int64, name string, db *sql.DB, logger *log.Logger) Service, ex bool) error {
+func NewSType(name string, cTor ServiceCtor, ex bool) error {
 	if _, ok := types[name]; !ok {
 		typ := sType{name, ex, cTor}
 		types[name] = typ
@@ -32,16 +31,16 @@ func NewSType(name string, cTor func(id int64, name string, db *sql.DB, logger *
 }
 
 func NewService(typ string, id int64, name string) error {
-	return newService(typ, id, name, sysServ.DB)
+	return newService(typ, id, name)
 }
 
-func newService(typ string, id int64, name string, db *sql.DB) error {
+func newService(typ string, id int64, name string) error {
 	//create new service
 	sTyp, ok := types[typ]
 	if !ok {
 		return InvalidTypeError(fmt.Errorf("Service type [%s] does not exist", typ))
 	}
-	newServ := sTyp.ctor(id, name, db, sysServ.Log)
+	newServ := sTyp.ctor(id, name, sysServ.Log)
 
 	//assign typ
 	newServ.abstract().typ = typ

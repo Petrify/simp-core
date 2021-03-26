@@ -9,6 +9,6 @@ func Test_Read(t *testing.T) {
 	}
 
 	for s.Next() {
-		t.Log(s.Raw())
+		t.Log(s.Stmt())
 	}
 }

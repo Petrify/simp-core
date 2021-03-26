@@ -1,7 +1,6 @@
 package simp
 
 import (
-	"flag"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	term "github.com/Petrify/go-terminal"
 	"github.com/Petrify/simp-core/config"
 	"github.com/Petrify/simp-core/service"
+	simpsql "github.com/Petrify/simp-core/sql"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -21,6 +21,7 @@ const cfgPathRelative string = "server_config.yml"
 var (
 	cfgPath string
 	sConfig *cfg
+	t       *term.Terminal
 )
 
 func Name() string {
@@ -28,51 +29,45 @@ func Name() string {
 }
 
 func init() {
-	initFlags()
-	cwd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	cfgPath = filepath.Join(cwd, cfgPathRelative)
-
-	sConfig = newCfg()
-
-	config.LoadCfg(sConfig, cfgPath)
+	start()
 }
 
-func Start() {
+func start() {
 
-	flag.Parse()
-
-	t := term.SysTerminal
-
-	//Declare variables for DB connection loop
-	const maxRetries = 5
-	var (
-		db  *sql.DB
-		err error
-	)
-
-	//Connect to DB. Retry if necessary
-	for i := 0; i < maxRetries; i++ {
-		db, err = sql.Open("mysql", sConfig.DBLogin)
-		if err != nil {
-			t.Printf("Error opening Database connection \n%e \nRetrying... [%d/%d]", err, i+1, maxRetries)
-		}
-	}
-
+	exeFile, err := os.Executable()
 	if err != nil {
-		t.Println("Database connection failed. Stopping.")
 		panic(err)
 	}
 
-	service.StartSysService(db, t.Logger, sConfig.Name)
+	exeDir := filepath.Dir(exeFile)
+	cfgPath = filepath.Join(exeDir, cfgPathRelative)
+
+	sConfig = newCfg()
+	config.LoadCfg(sConfig, cfgPath)
+
+	// Terminal
+	t = term.SysTerminal
+
+	db, err := sql.Open("mysql", sConfig.DBLogin)
+	if err != nil {
+		t.Print("Database connection failed. Stopping.")
+		os.Exit(0)
+	}
+
+	simpsql.DB = db
+
+	service.StartSysService(t.Logger, sConfig.Name)
 
 	if err != nil {
 		panic(err)
 	}
 
-	t.Println("Simp System Online. Press CTRL-C to exit.")
+	t.Println("Simp System Online")
+}
+
+func Wait() {
+
+	t.Println("Press Ctrl-C to exit")
 	sc := make(chan os.Signal, 1)
 	// Wait here until CTRL-C or other term signal is received.
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
@@ -83,7 +78,6 @@ func Start() {
 
 type cfg struct {
 	DBLogin string
-	DBType  string
 	Name    string
 }
 

@@ -140,14 +140,14 @@ func ExecScript(tx *sql.Tx, name string) error {
 	}
 	defer s.Close()
 
-	return s.ExecAll(tx)
+	return ScriptError{s.ExecAll(tx)}
 }
 
 //--- Schema opening
 
-func UsingSchema(db *sql.DB, schema string) (*sql.Tx, error) {
+func UsingSchema(schema string) (*sql.Tx, error) {
 
-	tx, err := db.Begin()
+	tx, err := DB.Begin()
 	if err != nil {
 		return nil, err
 	}
@@ -158,15 +158,20 @@ func UsingSchema(db *sql.DB, schema string) (*sql.Tx, error) {
 	}
 
 	return tx, nil
-
 }
 
-func SchemaExists(db *sql.DB, schema string) (bool, error) {
-	r, err := db.Query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", schema)
+func SchemaExists(schema string) (bool, error) {
+	r, err := DB.Query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", schema)
 	if err != nil {
 		return false, err
 	}
 	return r.Next(), nil
+}
+
+func MakeSchema(schema string) error {
+	_, err := DB.Exec("CREATE DATABASE :schema /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;",
+		sql.Named("schema", schema))
+	return err
 }
 
 //--- Files
