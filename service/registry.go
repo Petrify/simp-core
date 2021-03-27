@@ -30,11 +30,11 @@ func NewSType(name string, cTor ServiceCtor, ex bool) error {
 	}
 }
 
-func NewService(typ string, id int64, name string) (*Service, error) {
+func NewService(typ string, id int64, name string) (Service, error) {
 	return newService(typ, id, name)
 }
 
-func newService(typ string, id int64, name string) (*Service, error) {
+func newService(typ string, id int64, name string) (Service, error) {
 	//create new service
 	sTyp, ok := types[typ]
 	if !ok {
@@ -64,7 +64,7 @@ func newService(typ string, id int64, name string) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not register service [%d] %s :%e", newServ.ID(), newServ.Name(), err)
 	}
-	return &newServ, nil
+	return newServ, nil
 }
 
 func registerService(s Service) error {
