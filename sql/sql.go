@@ -140,7 +140,12 @@ func ExecScript(tx *sql.Tx, name string) error {
 	}
 	defer s.Close()
 
-	return ScriptError{s.ExecAll(tx)}
+	err = s.ExecAll(tx)
+	if err != nil {
+		return ScriptError{err}
+	}
+
+	return nil
 }
 
 //--- Schema opening

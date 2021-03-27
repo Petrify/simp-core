@@ -24,6 +24,7 @@ func (s *SysService) dbNewService(id int64, name string, typ string, startup boo
 	if err != nil {
 		return err
 	}
+	defer tx.Commit()
 
 	_, err = tx.Exec(
 		`INSERT INTO service
@@ -35,6 +36,7 @@ func (s *SysService) dbNewService(id int64, name string, typ string, startup boo
 		id, name, typ, startup)
 
 	if err != nil {
+		tx.Rollback()
 		sysServ.Log.Printf("An Error while saving new service `%s` to database: \n%e", name, err)
 		return err
 	}
@@ -49,6 +51,7 @@ func (s *SysService) qService(id int64) (*modelService, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer tx.Commit()
 
 	rows, err := tx.Query(
 		`SELECT servicename, serviceid, servicetype, version FROM service WHERE serviceid = ?`,
@@ -78,6 +81,7 @@ func (s *SysService) qStartupServices() (lst []modelService, err error) {
 	if err != nil {
 		return nil, err
 	}
+	defer tx.Commit()
 
 	rows, err := tx.Query("SELECT servicename, serviceid, servicetype, version FROM `service` WHERE startupservice = 1")
 	if err != nil {
