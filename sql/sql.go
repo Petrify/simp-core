@@ -178,6 +178,11 @@ func MakeSchema(schema string) error {
 	return err
 }
 
+func DelSchema(schema string) error {
+	_, err := DB.Exec(fmt.Sprintf("DROP DATABASE `%s`;", schema))
+	return err
+}
+
 //--- Files
 
 type delimScanner struct {
