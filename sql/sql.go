@@ -169,8 +169,7 @@ func SchemaExists(schema string) (bool, error) {
 }
 
 func MakeSchema(schema string) error {
-	_, err := DB.Exec("CREATE DATABASE :schema /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;",
-		sql.Named("schema", schema))
+	_, err := DB.Exec(fmt.Sprintf("CREATE DATABASE `%s` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;", schema))
 	return err
 }
 
