@@ -30,15 +30,15 @@ func NewSType(name string, cTor ServiceCtor, ex bool) error {
 	}
 }
 
-func NewService(typ string, id int64, name string) error {
+func NewService(typ string, id int64, name string) (*Service, error) {
 	return newService(typ, id, name)
 }
 
-func newService(typ string, id int64, name string) error {
+func newService(typ string, id int64, name string) (*Service, error) {
 	//create new service
 	sTyp, ok := types[typ]
 	if !ok {
-		return InvalidTypeError(fmt.Errorf("Service type [%s] does not exist", typ))
+		return nil, InvalidTypeError(fmt.Errorf("Service type [%s] does not exist", typ))
 	}
 	newServ := sTyp.ctor(id, name, sysServ.Log)
 
@@ -47,24 +47,24 @@ func newService(typ string, id int64, name string) error {
 
 	model, err := sysServ.qService(id)
 	if err != nil {
-		return err
+		return nil, err
 	} else if model == nil {
 		err = newServ.Setup()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		err = sysServ.dbNewService(id, name, typ, false)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	//register service
 	err = registerService(newServ)
 	if err != nil {
-		return fmt.Errorf("could not register service [%d] %s :%e", newServ.ID(), newServ.Name(), err)
+		return nil, fmt.Errorf("could not register service [%d] %s :%e", newServ.ID(), newServ.Name(), err)
 	}
-	return nil
+	return &newServ, nil
 }
 
 func registerService(s Service) error {
