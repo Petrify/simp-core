@@ -55,8 +55,12 @@ func (it *Interpreter) Run(ctx context.Context, cmd string, ext ...interface{}) 
 		}
 	}
 
-	return curr.f(ctx, splitCmd[depth+1:], ext...)
+	err = curr.f(ctx, splitCmd[depth+1:], ext...)
+	if err != nil {
+		return ExecutionError{err}
+	}
 
+	return nil
 }
 
 func (it *Interpreter) AddCommand(path string, f func(ctx context.Context, args []string, ext ...interface{}) error) (err error) {
