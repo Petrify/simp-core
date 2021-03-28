@@ -116,7 +116,7 @@ func splitDelim(delim string) (f func(data []byte, atEOF bool) (advance int, tok
 				nCorr++
 
 				if nCorr == len(delim) {
-					return i + 1, data[:i-len(delim)], nil
+					return i + 1, data[:i-len(delim)-1], nil
 				}
 			}
 		}
