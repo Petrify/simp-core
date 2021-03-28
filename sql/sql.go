@@ -1,13 +1,12 @@
 package simpsql
 
 import (
+	"bufio"
 	"database/sql"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/otiai10/copy"
 )
@@ -52,8 +51,8 @@ func cloneSqlScripts() {
 }
 
 type script struct {
-	scanner *delimScanner
-	last    string
+	f *os.File
+	*bufio.Scanner
 }
 
 func Open(sname string) (*script, error) {
@@ -93,30 +92,57 @@ func Open(sname string) (*script, error) {
 		}
 	}
 
+	sc := bufio.NewScanner(f)
+	sc.Split(splitDelim(sqlDelim))
+
 	s := &script{
-		scanner: newScanner(sqlDelim, f),
+		f:       f,
+		Scanner: sc,
 	}
 
 	return s, nil
 }
 
-func (s *script) Next() bool {
-	read, err := s.scanner.Scan()
-	s.last = strings.TrimSpace(read)
-	if err == io.EOF {
-		if s.last == "" {
-			return false
+func splitDelim(delim string) (f func(data []byte, atEOF bool) (advance int, token []byte, err error)) {
+
+	f = func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		if atEOF && len(data) == 0 {
+			return 0, nil, nil
 		}
+
+		var nCorr int = 0
+		for i, b := range data {
+			if b == delim[nCorr] {
+				nCorr++
+
+				if nCorr == len(delim) {
+					return i + 1, data[:i-len(delim)], nil
+				}
+			}
+		}
+
+		// If we're at EOF, we have a final, non-terminated line. Return it.
+		if atEOF {
+			return len(data), data, nil
+		}
+
+		// request more data
+		return 0, nil, nil
 	}
-	return true
+
+	return
+}
+
+func (s *script) Next() bool {
+	return s.Scan()
 }
 
 func (s *script) Stmt() string {
-	return s.last
+	return s.Text()
 }
 
 func (s *script) Close() error {
-	return s.scanner.close()
+	return s.f.Close()
 }
 
 func (s *script) Exec(tx *sql.Tx) (sql.Result, error) {
@@ -181,99 +207,4 @@ func MakeSchema(schema string) error {
 func DelSchema(schema string) error {
 	_, err := DB.Exec(fmt.Sprintf("DROP DATABASE `%s`;", schema))
 	return err
-}
-
-//--- Files
-
-type delimScanner struct {
-	f       *os.File
-	delim   []byte
-	bufSize int
-	prevBuf [][]byte
-}
-
-func newScanner(delim string, f *os.File) *delimScanner {
-	return &delimScanner{
-		f:       f,
-		delim:   []byte(delim),
-		bufSize: 2048,
-		prevBuf: make([][]byte, 0, 8),
-	}
-}
-
-func (s *delimScanner) Scan() (string, error) {
-
-	// if there are no previous buffers
-	if len(s.prevBuf) == 0 {
-		err := s.readNext()
-		if err != nil {
-			return "", err
-		}
-	}
-
-	nCorr := 0 //number of correct hits
-	for {
-		lastbuf := s.prevBuf[len(s.prevBuf)-1] //latest buffer
-		for i := range lastbuf {
-			if lastbuf[i] == s.delim[nCorr] {
-				nCorr++
-				if nCorr == len(s.delim) {
-					//Delim found
-					return s.compileString(i-len(s.delim), true), nil
-				}
-			} else {
-				nCorr = 0
-			}
-		}
-
-		if len(lastbuf) == s.bufSize {
-			err := s.readNext()
-			if err != nil {
-				if err == io.EOF {
-					return s.compileString(s.bufSize-1, false), err
-				}
-				return "", err
-			}
-		} else {
-			return s.compileString(len(lastbuf)-1, false), io.EOF
-		}
-	}
-}
-
-func (s *delimScanner) readNext() error {
-	newBuf := make([]byte, s.bufSize)
-	n, err := s.f.Read(newBuf)
-	if err != nil {
-		return err
-	}
-	s.prevBuf = append(s.prevBuf, newBuf[:n])
-	return nil
-}
-
-func (s *delimScanner) compileString(lbIndex int, rmDelim bool) string {
-	nbuf := len(s.prevBuf)
-	lTotal := (nbuf-1)*s.bufSize + lbIndex + 1
-	remain := lTotal
-	bytes := make([]byte, 0, lTotal)
-	i := 0
-	for ; remain > s.bufSize; i++ {
-		bytes = append(bytes, s.prevBuf[i]...)
-		remain -= s.bufSize
-	}
-	bytes = append(bytes, s.prevBuf[i][:remain]...)
-
-	//reset scanner buffer
-	s.prevBuf = s.prevBuf[nbuf-1:]
-
-	if rmDelim {
-		s.prevBuf[0] = s.prevBuf[0][lbIndex+len(s.delim)+1:]
-	} else {
-		s.prevBuf[0] = s.prevBuf[0][lbIndex+1:]
-	}
-
-	return string(bytes)
-}
-
-func (s *delimScanner) close() error {
-	return s.f.Close()
 }
