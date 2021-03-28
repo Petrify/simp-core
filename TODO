@@ -4,3 +4,4 @@
 - Improve SQL reading etc
 - Type checking for commands
 - allow commands having subcommands (go <arg> is a command but go get <arg> is also a command) 
+- Extensive Testing
