@@ -1,6 +1,7 @@
 package simp
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -43,15 +44,26 @@ func start() {
 	cfgPath = filepath.Join(exeDir, cfgPathRelative)
 
 	sConfig = newCfg()
-	config.LoadCfg(sConfig, cfgPath)
+	err = config.LoadCfg(sConfig, cfgPath)
+	if err != nil {
+		fmt.Println("Error loading config: ", err)
+		os.Exit(0)
+	}
 
 	// Terminal
 	t = term.SysTerminal
 
 	db, err := sql.Open("mysql", sConfig.DBLogin)
 	if err != nil {
-		t.Print("Database connection failed. Stopping.")
-		os.Exit(0)
+		t.Print("Database connection failed: ", err)
+		os.Exit(1)
+	}
+
+	//check connection
+	err = db.Ping()
+	if err != nil {
+		fmt.Println("Database ping failed: ", err)
+		os.Exit(1)
 	}
 
 	simpsql.DB = db
